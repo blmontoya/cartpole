@@ -5326,7 +5326,7 @@ packages:
   depends:
   - python >=3.9
   constrains:
-  - astroid >=2,<4
+  - asteroid >=2,<4
   license: Apache-2.0
   license_family: Apache
   purls:
@@ -6621,7 +6621,7 @@ packages:
   license: LGPL-2.1
   license_family: GPL
   purls:
-  - pkg:pypi/empy?source=hash-mapping
+  - pkg:pypi/empty?source=hash-mapping
   size: 40210
   timestamp: 1586444722817
 - conda: https://prefix.dev/conda-forge/linux-64/epoxy-1.5.10-h166bdaf_1.tar.bz2
