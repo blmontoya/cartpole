@@ -32,7 +32,7 @@ scripts = ["scripts/post-install.bash"] # pip  install the package in editable m
 
 #### All possible environment combinations
 [environments]
-default = "cpu"
+default = ["cpu"]
 cpu = { features = ["cpu"] } # All you need for bare-bones
 test = { features = ["test", "cpu"] } # This environment is relied upon by default by the CI
 
