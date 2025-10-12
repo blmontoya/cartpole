@@ -31,6 +31,7 @@ n_actions = env.action_space.n
 
 # PPO | Continiuous Actor Critic | stable baselines
 
+
 class Actor(nn.Module):
     def __init__(self, state_dim, n_actions, activation=nn.Tanh):
         super().__init__()
@@ -41,11 +42,12 @@ class Actor(nn.Module):
             nn.Linear(64, 64),
             activation(),
             nn.Linear(64, n_actions),
-            nn.Softmax(dim=1)
+            nn.Softmax(dim=1),
         )
-    
+
     def forward(self, X):
         return self.model(X)
+
 
 class Critic(nn.Module):
     def __init__(self, state_dim, activation=nn.Tanh):
@@ -55,12 +57,13 @@ class Critic(nn.Module):
             activation(),
             nn.Linear(64, 32),
             activation(),
-            nn.Linear(32, 1)
+            nn.Linear(32, 1),
         )
-    
+
     def forward(self, X):
         return self.model(X)
-    
+
+
 # --- Hyperparameters ---
 actor = Actor(state_dim, n_actions)
 critic = Critic(state_dim)
@@ -70,7 +73,7 @@ gamma = 0.99
 eps_clip = 0.2
 epochs = 1000
 steps_per_update = 2048
-    
+
 # --- PPO Training Loop ---
 for ep in range(epochs):
     state, _ = env.reset()
@@ -98,7 +101,7 @@ for ep in range(epochs):
         rewards.append(reward)
         states.append(state_tensor)
         actions.append(action)
-# a
+        # a
         state = next_state
         if terminated or truncated:
             state, _ = env.reset()
@@ -115,13 +118,15 @@ for ep in range(epochs):
 
     # --- Update Actor ---
     for _ in range(4):  # PPO epochs
-        for log_prob, advantage, state, action in zip(log_probs, advantages, states, actions):
+        for log_prob, advantage, state, action in zip(
+            log_probs, advantages, states, actions
+        ):
             probs = actor(state)
             dist = Categorical(probs)
             new_log_prob = dist.log_prob(action)
             ratio = (new_log_prob - log_prob).exp()
-            clipped = torch.clamp(ratio, 1-eps_clip, 1+eps_clip) * advantage
-            loss = -torch.min(ratio*advantage, clipped)
+            clipped = torch.clamp(ratio, 1 - eps_clip, 1 + eps_clip) * advantage
+            loss = -torch.min(ratio * advantage, clipped)
             actor_opt.zero_grad()
             loss.backward()
             actor_opt.step()
@@ -130,7 +135,7 @@ for ep in range(epochs):
     for _ in range(4):
         for state, ret in zip(states, returns):
             value = critic(state)
-            loss = (ret - value)**2
+            loss = (ret - value) ** 2
             critic_opt.zero_grad()
             loss.backward()
             critic_opt.step()
