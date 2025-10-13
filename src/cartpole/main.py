@@ -18,126 +18,157 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import gymnasium as gym
+
+# from safetensors.torch import save_file
+# from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
+# import safetensors
 from torch.distributions import Categorical
 
+# add tensorboard later
+
 # --- Environment ---
-env = gym.make("CartPole-v1", render_mode="human")
-obs, info = env.reset()
+env = gym.make("CartPole-v1")
 state_dim = env.observation_space.shape[0]
 n_actions = env.action_space.n
 
-# PPO | Continiuous Actor Critic | stable baselines
 
-
-class Actor(nn.Module):
-    def __init__(self, state_dim, n_actions, activation=nn.Tanh):
+# --- Actor-Critic MLP ---
+class ActorCritic(nn.Module):
+    def __init__(self, state_dim, n_actions):
         super().__init__()
-        self.n_actions = n_actions
-        self.model = nn.Sequential(
-            nn.Linear(state_dim, 64),
-            activation(),
-            nn.Linear(64, 64),
-            activation(),
-            nn.Linear(64, n_actions),
-            nn.Softmax(dim=1),
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, 64), nn.ReLU(), nn.Linear(64, 64), nn.ReLU()
         )
+        self.actor = nn.Linear(64, n_actions)
+        self.critic = nn.Linear(64, 1)
 
-    def forward(self, X):
-        return self.model(X)
+    def forward(self, x):
+        x = self.shared(x)
+        return self.actor(x), self.critic(x)
 
 
-class Critic(nn.Module):
-    def __init__(self, state_dim, activation=nn.Tanh):
-        super().__init__()
-        self.model = nn.Sequential(
-            nn.Linear(state_dim, 64),
-            activation(),
-            nn.Linear(64, 32),
-            activation(),
-            nn.Linear(32, 1),
-        )
-
-    def forward(self, X):
-        return self.model(X)
-
+model = ActorCritic(state_dim, n_actions)
+optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
 # --- Hyperparameters ---
-actor = Actor(state_dim, n_actions)
-critic = Critic(state_dim)
-actor_opt = optim.Adam(actor.parameters(), lr=3e-4)
-critic_opt = optim.Adam(critic.parameters(), lr=3e-3)
 gamma = 0.99
 eps_clip = 0.2
-epochs = 1000
+ppo_epochs = 4
+batch_size = 64
 steps_per_update = 2048
+epochs = 100
 
-# --- PPO Training Loop ---
-for ep in range(epochs):
-    state, _ = env.reset()
-    done = False
-    log_probs = []
-    values = []
-    rewards = []
-    states = []
-    actions = []
+# --- TensorBoard ---
+# writer = SummaryWriter("runs/cartpole_ppo")
 
-    while len(states) < steps_per_update:
-        state_tensor = torch.tensor(state, dtype=torch.float32)
-        probs = actor(state_tensor)
+# --- Training loop ---
+for epoch in range(epochs):
+    states, actions, log_probs, rewards, dones, values = [], [], [], [], [], []
+
+    state = env.reset()[0]
+    ep_rewards = []
+    episode_lengths = []
+    ep_reward = 0
+    episode_steps = 0
+
+    for step in range(steps_per_update):
+        state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+        logits, value = model(state_tensor)
+        probs = torch.softmax(logits, dim=-1)
         dist = Categorical(probs)
         action = dist.sample()
-        value = critic(state_tensor)
 
         next_state, reward, terminated, truncated, _ = env.step(action.item())
+        episode_steps += 1
+        done = terminated or truncated
 
-        log_prob = dist.log_prob(action)
-
-        # store trajectory
-        log_probs.append(log_prob)
-        values.append(value)
+        # Store trajectory
+        states.append(state)
+        actions.append(action.item())
+        log_probs.append(dist.log_prob(action).item())
         rewards.append(reward)
-        states.append(state_tensor)
-        actions.append(action)
-        # a
-        state = next_state
-        if terminated or truncated:
-            state, _ = env.reset()
+        dones.append(done)
+        values.append(value.item())
 
-    # --- Compute advantages ---
+        ep_reward += reward
+        state = next_state
+
+        if done:
+            ep_rewards.append(ep_reward)
+            # writer.add_scalar("Reward/Episode", ep_reward, epoch * steps_per_update + step)
+            ep_reward = 0
+            episode_lengths.append(episode_steps)
+            episode_steps = 0
+            state = env.reset()[0]
+
+    # --- Compute discounted returns & advantages ---
     returns = []
     G = 0
-    for r in reversed(rewards):
-        G = r + gamma * G
+    for r, d in zip(reversed(rewards), reversed(dones)):
+        G = r + gamma * G * (1 - d)
         returns.insert(0, G)
-    returns = torch.tensor(returns)
-    values = torch.stack(values).squeeze()
-    advantages = returns - values.detach()
 
-    # --- Update Actor ---
-    for _ in range(4):  # PPO epochs
-        for log_prob, advantage, state, action in zip(
-            log_probs, advantages, states, actions
-        ):
-            probs = actor(state)
+    returns = torch.tensor(returns, dtype=torch.float32)
+    values = torch.tensor(values, dtype=torch.float32)
+    advantages = returns - values
+
+    # --- Convert lists to tensors ---
+    states = torch.tensor(states, dtype=torch.float32)
+    actions = torch.tensor(actions, dtype=torch.long)
+    old_log_probs = torch.tensor(log_probs, dtype=torch.float32)
+
+    # --- PPO update ---
+    for _ in range(ppo_epochs):
+        indices = torch.randperm(len(states))
+        for start in range(0, len(states), batch_size):
+            end = start + batch_size
+            idx = indices[start:end]
+
+            batch_states = states[idx]
+            batch_actions = actions[idx]
+            batch_old_log_probs = old_log_probs[idx]
+            batch_advantages = advantages[idx]
+            batch_returns = returns[idx]
+
+            logits, value = model(batch_states)
+            probs = torch.softmax(logits, dim=-1)
             dist = Categorical(probs)
-            new_log_prob = dist.log_prob(action)
-            ratio = (new_log_prob - log_prob).exp()
-            clipped = torch.clamp(ratio, 1 - eps_clip, 1 + eps_clip) * advantage
-            loss = -torch.min(ratio * advantage, clipped)
-            actor_opt.zero_grad()
-            loss.backward()
-            actor_opt.step()
+            new_log_probs = dist.log_prob(batch_actions)
 
-    # --- Update Critic ---
-    for _ in range(4):
-        for state, ret in zip(states, returns):
-            value = critic(state)
-            loss = (ret - value) ** 2
-            critic_opt.zero_grad()
+            # Actor loss
+            ratios = (new_log_probs - batch_old_log_probs).exp()
+            surr1 = ratios * batch_advantages
+            surr2 = torch.clamp(ratios, 1 - eps_clip, 1 + eps_clip) * batch_advantages
+            actor_loss = -torch.min(surr1, surr2).mean() - 0.01 * dist.entropy().mean()
+
+            # Critic loss
+            critic_loss = ((batch_returns - value.squeeze()) ** 2).mean()
+
+            loss = actor_loss + 0.5 * critic_loss
+
+            optimizer.zero_grad()
             loss.backward()
-            critic_opt.step()
+            optimizer.step()
+
+    # --- Logging ---
+    # --- Logging per epoch ---
+    avg_reward = np.mean(ep_rewards)
+    max_reward = np.max(ep_rewards)
+    # writer.add_scalar("Reward/Avg", avg_reward, epoch)
+    # writer.add_scalar("Reward/Max", max_reward, epoch)
+    if epoch % 10 == 0:
+        print(
+            f"Epoch {epoch}, Avg Reward: {np.mean(ep_rewards):.2f}, Max Reward: {np.max(ep_rewards):.2f}, Avg Steps: {np.mean(episode_lengths):.2f}"
+        )
+
+# --- Save model ---
+# save_file({"model": model.state_dict()}, "ppo_cartpole.safetensors")
+print("Training complete. Model saved as ppo_cartpole.safetensors")
+# writer.close()
 
 env.close()
