@@ -31,22 +31,39 @@ import os
 from torch.distributions import Categorical
 
 # add tensorboard later
-# --- Actor-Critic MLP ---
+# Actor-Critic MLP
+# Maybe seperate into the actor and the critic classes?
+# Maybe add dropout and fully connected layers
+class LowRankLinear(nn.Module):
+    def __init__(self, in_features, out_features, rank):
+        super().__init__()
+        self.down = nn.Linear(in_features, rank, bias=False)
+        self.up = nn.Linear(rank, out_features, bias=True)
+
+    def forward(self, x):
+        return self.up(self.down(x))
+
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, n_actions):
         super().__init__()
         self.shared = nn.Sequential(
-            nn.Linear(state_dim, 64), nn.ReLU(), nn.Linear(64, 64), nn.ReLU()
+            #nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
+            nn.Linear(state_dim, 64),
+            nn.LeakyReLU(0.01),
         )
+        #self.actor = nn.Linear(64, n_actions)
+        #self.critic = nn.Linear(64, 1)
         self.actor = nn.Linear(64, n_actions)
         self.critic = nn.Linear(64, 1)
 
     def forward(self, x):
         x = self.shared(x)
         return self.actor(x), self.critic(x)
-    
+
+
+# Maybe make into a seperate method?
 if __name__ == "__main__":
-    # --- Environment ---
+    # Environment
     env = gym.make("CartPole-v1")
     state_dim = env.observation_space.shape[0]
     n_actions = env.action_space.n
@@ -54,18 +71,18 @@ if __name__ == "__main__":
     model = ActorCritic(state_dim, n_actions)
     optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-    # --- Hyperparameters ---
+    # Hyperparameters
     gamma = 0.99
     eps_clip = 0.2
     ppo_epochs = 4
     batch_size = 64
     steps_per_update = 2048
-    epochs = 300
+    epochs = 150
 
-    # --- TensorBoard ---
+    # TensorBoard 
     writer = SummaryWriter("runs/cartpole_ppo")
 
-    # --- Training loop ---
+    # Training loop
     for epoch in range(epochs):
         states, actions, log_probs, rewards, dones, values = [], [], [], [], [], []
 
@@ -75,6 +92,7 @@ if __name__ == "__main__":
         ep_reward = 0
         episode_steps = 0
 
+        # For each step in an epoch
         for step in range(steps_per_update):
             state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
             logits, value = model(state_tensor)
@@ -99,13 +117,16 @@ if __name__ == "__main__":
 
             if done:
                 ep_rewards.append(ep_reward)
-                writer.add_scalar("Reward/Episode", ep_reward, epoch * steps_per_update + step)
+                avg_reward = np.mean(ep_rewards)
+                # Fix this??
+                #writer.add_scalar("Reward/Avg", avg_reward, epoch)
+                #writer.add_scalar("Reward/Episode", ep_reward, epoch * steps_per_update + step)
                 ep_reward = 0
                 episode_lengths.append(episode_steps)
                 episode_steps = 0
                 state = env.reset()[0]
 
-        # --- Compute discounted returns & advantages ---
+        # Compute discounted returns & advantages
         returns = []
         G = 0
         for r, d in zip(reversed(rewards), reversed(dones)):
@@ -116,12 +137,12 @@ if __name__ == "__main__":
         values = torch.tensor(values, dtype=torch.float32)
         advantages = returns - values
 
-        # --- Convert lists to tensors ---
+        # Convert lists to tensors
         states = torch.tensor(states, dtype=torch.float32)
         actions = torch.tensor(actions, dtype=torch.long)
         old_log_probs = torch.tensor(log_probs, dtype=torch.float32)
 
-        # --- PPO update ---
+        # PPO update
         for _ in range(ppo_epochs):
             indices = torch.randperm(len(states))
             for start in range(0, len(states), batch_size):
@@ -154,8 +175,7 @@ if __name__ == "__main__":
                 loss.backward()
                 optimizer.step()
 
-        # --- Logging ---
-        # --- Logging per epoch ---
+        # Logging per epoch
         avg_reward = np.mean(ep_rewards)
         max_reward = np.max(ep_rewards)
         writer.add_scalar("Reward/Avg", avg_reward, epoch)
@@ -165,7 +185,7 @@ if __name__ == "__main__":
                 f"Epoch {epoch}, Avg Reward: {np.mean(ep_rewards):.2f}, Max Reward: {np.max(ep_rewards):.2f}, Avg Steps: {np.mean(episode_lengths):.2f}"
             )
 
-    # --- Save model ---
+    # Save model
     save_file(model.state_dict(), "ppo_cartpole.safetensors")
 
     print("Training complete. Model saved as ppo_cartpole.safetensors")
