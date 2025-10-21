@@ -23,6 +23,9 @@ import os
 from safetensors.torch import load_file  # <-- safetensors
 from main import ActorCritic  # adjust if your structure is different
 
+model_add = "fast_ppo_cartpole.safetensors"
+episodes_num = 5
+
 def run_agent(model_path, episodes=5, render=True):
     """Load a trained Actor-Critic model and run evaluation episodes."""
 
@@ -83,4 +86,4 @@ def run_agent(model_path, episodes=5, render=True):
 
 if __name__ == "__main__":
     # Example usage: adjust path if needed
-    run_agent("ppo_cartpole.safetensors", episodes=5, render=True)
+    run_agent(model_add, episodes_num, render=True)

@@ -17,6 +17,7 @@ ipywidgets = ">=8.1.7,<9"
 tensorboard = ">=2.20.0,<3"
 gymnasium = ">=0.29.1,<1"
 safetensors = ">=0.6.2,<0.7"
+weightwatcher = ">=0.7.3.5,<0.8"
 
 [feature.cpu]
 [feature.cpu.dependencies]

@@ -30,6 +30,8 @@ import os
 # import safetensors
 from torch.distributions import Categorical
 
+model_add = "fast_ppo_cartpole.safetensors"
+
 # add tensorboard later
 # Actor-Critic MLP
 # Maybe seperate into the actor and the critic classes?
@@ -47,9 +49,9 @@ class ActorCritic(nn.Module):
     def __init__(self, state_dim, n_actions):
         super().__init__()
         self.shared = nn.Sequential(
-            #nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
-            nn.Linear(state_dim, 64),
-            nn.LeakyReLU(0.01),
+            nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
+            #nn.Linear(state_dim, 64),
+            #nn.LeakyReLU(0.01),
         )
         #self.actor = nn.Linear(64, n_actions)
         #self.critic = nn.Linear(64, 1)
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     ppo_epochs = 4
     batch_size = 64
     steps_per_update = 2048
-    epochs = 150
+    epochs = 80
 
     # TensorBoard 
     writer = SummaryWriter("runs/cartpole_ppo")
@@ -186,9 +188,9 @@ if __name__ == "__main__":
             )
 
     # Save model
-    save_file(model.state_dict(), "ppo_cartpole.safetensors")
+    save_file(model.state_dict(), model_add)
 
-    print("Training complete. Model saved as ppo_cartpole.safetensors")
+    print("Training complete. Model saved as ", model_add)
     writer.close()
 
     env.close()

@@ -2,8 +2,9 @@
 import torch
 import numpy as np
 from safetensors.torch import load_file
-from main import ActorCritic  # import your model definition
+from main import ActorCritic 
 
+model_add = "fast_ppo_cartpole.safetensors"
 
 def analyze_svd(model, energy_threshold=0.95):
     svd_info = {}
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     n_actions = 2      # CartPole action dim
     model = ActorCritic(state_dim, n_actions)
 
-    ckpt = load_file("ppo_cartpole.safetensors")
+    ckpt = load_file(model_add)
     if "model" in ckpt:
         model.load_state_dict(ckpt["model"])
     else:
