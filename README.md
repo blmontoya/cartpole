@@ -52,48 +52,40 @@ For example:
 
 /workspace/min_ppo.safetensors
 
-        ```sh
-        self.shared = nn.Sequential(
-            nn.Linear(state_dim, 64),
-            nn.LeakyReLU(0.01),
-        )
-        self.actor = nn.Linear(64, n_actions)
-        self.critic = nn.Linear(64, 1)
-        ```
+
+    self.shared = nn.Sequential(
+        nn.Linear(state_dim, 64),
+        nn.LeakyReLU(0.01),
+    )
+    self.actor = nn.Linear(64, n_actions)
+    self.critic = nn.Linear(64, 1)
+
 /workspace/fast_ppo.safetensors
 
-        ```sh
-        self.shared = nn.Sequential(
-            nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
-        )
-        self.actor = nn.Linear(64, n_actions)
-        self.critic = nn.Linear(64, 1)
-        ```
+
+    self.shared = nn.Sequential(
+        nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
+    )
+    self.actor = nn.Linear(64, n_actions)
+    self.critic = nn.Linear(64, 1)
+
 
 ## cartpole_eval.py
 You can simulate your trained cartpole models by running:
 
-    ```sh
     ./cartpole_eval.py <MODEL PATH> --episodes <episode count> --no-render 
-    ```
 
 By default, episodes are set to 5 and rendering is turned on.
 
 Examples:
 -> Default settings
 
-    ```sh
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 6
-    ```
 
 -> 3 Episodes, Rendering
 
-    ```sh
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 6
-    ```
 
 -> 20 Episodes, No rendering
 
-    ```sh
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 20 --no-render 
-    ```
