@@ -13,7 +13,7 @@ This program runs on a pixi environment using Python 3.11.0.
 
 All required packages are preinstalled onto the pixi environment.
 
-Also, please run the following so you don't have to write "python" at the start of each command:
+* Also, please run the following so you don't have to write "python" at the start of each command:
 
     chmod +x *.py
     
@@ -42,15 +42,11 @@ For running on a GPU using CUDA, make sure the PyTorch version with CUDA is inst
 ## cartpole_model.py
 You can create a model trained on cartpole by running:
 
-    ```sh
     ./cartpole_model.py /PATH/<name>.safetensors
-    ```
 
 For example:
 
-    ```sh
     ./cartpole_model.py /workspace/min_ppo.safetensors
-    ```
 
 ### IMPORTANT: In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
 
