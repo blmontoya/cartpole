@@ -16,9 +16,9 @@ All required packages are preinstalled onto the pixi environment.
 Also, please run the following so you don't have to write "python" at the start of each command:
 
     ```python
-    chmod +x *.py
+        chmod +x *.py
     ```
-    
+
 ## Optional (But Recommended)
 
 I used TensorBoard to track learning rate, accuracy, and loss. If you would like to also track these variables and activate TensorBoard, open a new terminal and paste the line below. Afterwards, go to http://localhost:6006/.
