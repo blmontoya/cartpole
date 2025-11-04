@@ -14,7 +14,6 @@ writer = SummaryWriter("runs/multitask_ppo")
 def make_env(env_id):
     return lambda: gym.make(env_id)
 
-
 # MultiTask Network
 class MultiTaskActorCritic(nn.Module):
     def __init__(self):

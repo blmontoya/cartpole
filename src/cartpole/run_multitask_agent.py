@@ -5,7 +5,7 @@ import os
 import time
 
 # Import your multitask policy definition
-from cartpole.leg_3 import MultiTaskPolicy  # <-- from your training file
+from cartpole.lunar_walker_mlp import MultiTaskPolicy  # <-- from your training file
 
 MODEL_PATH = "ppo_multitask_lunar_walker.zip"
 EPISODES = 3
