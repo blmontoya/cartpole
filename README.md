@@ -1,9 +1,7 @@
 <!-- GETTING STARTED -->
-## Getting Started
+# Getting Started
 
-NOTE: The readmeimgs folder consists of images for this README and are not important to the datasets.
-
-### Prerequisites
+## Prerequisites
 
 This program runs on a pixi environment using Python 3.11.0.
 
@@ -20,7 +18,7 @@ Also, please run the following so you don't have to write "python" at the start 
     chmod +x *.py
     ```
 
-### Optional (But Recommended)
+## Optional (But Recommended)
 
 I used TensorBoard to track learning rate, accuracy, and loss. If you would like to also track these variables and activate TensorBoard, open a new terminal and paste the line below. Afterwards, go to http://localhost:6006/.
 
@@ -39,7 +37,7 @@ For running on a GPU using CUDA, make sure the PyTorch version with CUDA is inst
     ```
 
 <!-- Using the Programs -->
-### Using the Programs
+# Using the Programs
 
 ## cartpole_model.py
 You can create a model trained on cartpole by running:
@@ -50,7 +48,7 @@ For example:
     ```sh
     ./cartpole_model.py /workspace/min_ppo.safetensors
     ```
-# IMPORTANT: In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
+### IMPORTANT: In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
 
 /workspace/min_ppo.safetensors
         ```sh
