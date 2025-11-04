@@ -52,7 +52,6 @@ For example:
 In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
 
 * /workspace/min_ppo.safetensors
-
     ```
     self.shared = nn.Sequential(
         nn.Linear(state_dim, 64),
@@ -63,13 +62,13 @@ In ActorCritic(), record self.shared, self.actor, and self.critic. When you run 
     ```
 
 * /workspace/fast_ppo.safetensors
-
-
+    ```
     self.shared = nn.Sequential(
         nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
     )
     self.actor = nn.Linear(64, n_actions)
     self.critic = nn.Linear(64, 1)
+    ```
 
 
 ## cartpole_eval.py
@@ -81,13 +80,16 @@ By default, episodes are set to 5 and rendering is turned on.
 
 Examples:
 * Default settings
-
+    ```
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 6
+    ```
 
 * 3 Episodes, Rendering
-
+    ```
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 6
+    ```
 
 * 20 Episodes, No rendering
-
+    ```
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 20 --no-render 
+    ```
