@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright (c) 2025, Gary Lvov
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,12 +32,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import argparse
 
 # import safetensors
 from torch.distributions import Categorical
-
-
-model_add = "fast_ppo_cartpole.safetensors"
 
 # add tensorboard later
 # Actor-Critic MLP
@@ -56,8 +55,6 @@ class ActorCritic(nn.Module):
         super().__init__()
         self.shared = nn.Sequential(
             nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
-            #nn.Linear(state_dim, 64),
-            #nn.LeakyReLU(0.01),
         )
         self.actor = nn.Linear(64, n_actions)
         self.critic = nn.Linear(64, 1)
@@ -68,7 +65,7 @@ class ActorCritic(nn.Module):
 
 
 # Maybe make into a seperate method?
-if __name__ == "__main__":
+def create_cartpole_model(model_path):
     # Environment
     env = gym.make("CartPole-v1")
     state_dim = env.observation_space.shape[0]
@@ -124,9 +121,6 @@ if __name__ == "__main__":
             if done:
                 ep_rewards.append(ep_reward)
                 avg_reward = np.mean(ep_rewards)
-                # Fix this??
-                #writer.add_scalar("Reward/Avg", avg_reward, epoch)
-                #writer.add_scalar("Reward/Episode", ep_reward, epoch * steps_per_update + step)
                 ep_reward = 0
                 episode_lengths.append(episode_steps)
                 episode_steps = 0
@@ -192,9 +186,23 @@ if __name__ == "__main__":
             )
 
     # Save model
-    save_file(model.state_dict(), model_add)
+    save_file(model.state_dict(), model_path)
 
-    print("Training complete. Model saved as ", model_add)
+    print("Training complete. Model saved as ", model_path)
     writer.close()
 
     env.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Create a trained CartPole agent and save to a safetensor model")
+    parser.add_argument(
+        "model_path",
+        type=str,
+        help="Path to the safetensors model file (or just filename to search in workspace)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Run the agent
+    create_cartpole_model(model_path=args.model_path)
