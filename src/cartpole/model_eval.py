@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright (c) 2025, Gary Lvov
 #
 # Redistribution and use in source and binary forms, with or without
@@ -19,9 +20,10 @@
 
 import gymnasium as gym
 import torch
+import argparse
 import os
 from safetensors.torch import load_file  # <-- safetensors
-from cartpole.main import ActorCritic  
+from cartpole.cartpole_model import ActorCritic  
 
 model_add = "min_ppo_cartpole.safetensors"
 episodes_num = 5
@@ -83,7 +85,30 @@ def run_agent(model_path, episodes=5, render=True):
 
     env.close()
 
-
 if __name__ == "__main__":
-    # Example usage: adjust path if needed
-    run_agent(model_add, episodes_num, render=True)
+    parser = argparse.ArgumentParser(description="Run a trained CartPole agent from a safetensors model")
+    parser.add_argument(
+        "model_path",
+        type=str,
+        help="Path to the safetensors model file (or just filename to search in workspace)"
+    )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=5,
+        help="Number of episodes to run (default: 5)"
+    )
+    parser.add_argument(
+        "--no-render",
+        action="store_true",
+        help="Disable rendering (run headless)"
+    )
+    
+    args = parser.parse_args()
+    
+    # Run the agent
+    run_agent(
+        model_path=args.model_path,
+        episodes=args.episodes,
+        render=not args.no_render
+    )

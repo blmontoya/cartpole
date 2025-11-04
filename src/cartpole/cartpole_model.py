@@ -36,7 +36,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 
 
-model_add = "min_ppo_cartpole.safetensors"
+model_add = "fast_ppo_cartpole.safetensors"
 
 # add tensorboard later
 # Actor-Critic MLP
@@ -55,12 +55,10 @@ class ActorCritic(nn.Module):
     def __init__(self, state_dim, n_actions):
         super().__init__()
         self.shared = nn.Sequential(
-            #nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
-            nn.Linear(state_dim, 64),
-            nn.LeakyReLU(0.01),
+            nn.Linear(state_dim, 64), nn.LeakyReLU(0.01), nn.Linear(64, 64), nn.LeakyReLU(0.01)
+            #nn.Linear(state_dim, 64),
+            #nn.LeakyReLU(0.01),
         )
-        #self.actor = nn.Linear(64, n_actions)
-        #self.critic = nn.Linear(64, 1)
         self.actor = nn.Linear(64, n_actions)
         self.critic = nn.Linear(64, 1)
 
@@ -85,7 +83,7 @@ if __name__ == "__main__":
     ppo_epochs = 4
     batch_size = 64
     steps_per_update = 2048
-    epochs = 175
+    epochs = 90
 
     # TensorBoard 
     writer = SummaryWriter("runs/cartpole_ppo")

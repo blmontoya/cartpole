@@ -1,60 +1,91 @@
 #!/usr/bin/env python
-
 import torch
 import numpy as np
 from safetensors.torch import load_file
-from cartpole.main import ActorCritic 
+import pandas as pd
 import argparse
+from pathlib import Path
 
-def analyze_svd(state_dict, energy_threshold=0.95):
-    """Analyze SVD for all 2D tensors (weight matrices) in state dict"""
-    svd_info = {}
+
+def analyze_weights(state_dict, output_csv="model_stats.csv"):
+    """Analyze weight statistics for all tensors in state dict"""
+    stats = []
     
-    for name, tensor in state_dict.items():
-        # Only analyze 2D tensors (weight matrices), skip biases and 1D tensors
-        if len(tensor.shape) == 2:
-            W = tensor.cpu().numpy()
-            U, S, Vt = np.linalg.svd(W, full_matrices=False)
-            energy = np.cumsum(S ** 2) / np.sum(S ** 2)
-            k = np.searchsorted(energy, energy_threshold) + 1
+    for name, param in state_dict.items():
+        W = param
+        
+        # Basic stats for all tensors
+        stat_entry = {
+            "layer": name,
+            "shape": list(W.shape),
+            "mean": W.mean().item(),
+            "std": W.std().item(),
+            "min": W.min().item(),
+            "max": W.max().item(),
+            "num_params": W.numel()
+        }
+        
+        # Spectral norm only for 2D tensors (weight matrices)
+        if len(W.shape) == 2:
+            try:
+                u, s, v = torch.linalg.svd(W)
+                stat_entry["spectral_norm"] = s.max().item()
+                stat_entry["condition_number"] = (s.max() / s.min()).item() if s.min() > 0 else float("inf")
+            except RuntimeError:
+                stat_entry["spectral_norm"] = float("nan")
+                stat_entry["condition_number"] = float("nan")
+        else:
+            stat_entry["spectral_norm"] = None
+            stat_entry["condition_number"] = None
+        
+        stats.append(stat_entry)
 
-            svd_info[name] = {
-                "shape": W.shape,
-                "rank_full": len(S),
-                "k_95": k,
-                "energy_95": energy_threshold,
-                "compression_ratio": k / len(S),
-            }
-
-            print(f"Layer {name}: shape {W.shape}, rank {len(S)}, k={k} (~{k/len(S)*100:.1f}% kept)")
+    # Create csv_files directory if it doesn't exist
+    output_path = Path(output_csv)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    return svd_info
+    # Save to CSV
+    df = pd.DataFrame(stats)
+    df.to_csv(output_csv, index=False)
+    print(df.to_string())
 
-def summarize_svd(svd_info):
-    if not svd_info:
-        print("No 2D weight matrices found in model!")
-        return 0.0
+    # --- Summary ---
+    total_params = df["num_params"].sum()
+    weight_matrices = df[df["spectral_norm"].notna()]
     
-    ks = [v["k_95"] for v in svd_info.values()]
-    full_ranks = [v["rank_full"] for v in svd_info.values()]
-    overall_ratio = sum(ks) / sum(full_ranks)
-    print(f"\nOverall rank ratio: {overall_ratio:.2f} "
-          f"(≈{overall_ratio*100:.1f}% of weights needed for {svd_info[list(svd_info.keys())[0]]['energy_95']*100:.0f}% energy)")
-    return overall_ratio
+    print("\n=== Model Summary ===")
+    print(f"Total parameters: {total_params:,}")
+    print(f"Total layers: {len(df)}")
+    print(f"Weight matrices (2D): {len(weight_matrices)}")
+    
+    if len(weight_matrices) > 0:
+        avg_spectral_norm = weight_matrices["spectral_norm"].mean()
+        max_spectral_norm = weight_matrices["spectral_norm"].max()
+        layer_max_norm = weight_matrices.loc[weight_matrices["spectral_norm"].idxmax(), "layer"]
+        
+        print(f"Average spectral norm: {avg_spectral_norm:.4f}")
+        print(f"Maximum spectral norm: {max_spectral_norm:.4f} (Layer: {layer_max_norm})")
+        
+        avg_condition = weight_matrices["condition_number"].replace([float('inf')], float('nan')).mean()
+        if not np.isnan(avg_condition):
+            print(f"Average condition number: {avg_condition:.2f}")
+    
+    print(f"\nResults saved to: {output_csv}")
+    print("=====================\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run SVD analysis on any safetensors model")
+    parser = argparse.ArgumentParser(description="Run weight analysis on any safetensors model")
     parser.add_argument(
         "model_path",
         type=str,
         help="Path to the safetensors model file"
     )
     parser.add_argument(
-        "--energy-threshold",
-        type=float,
-        default=0.95,
-        help="Energy threshold for SVD analysis (default: 0.95)"
+        "--output",
+        type=str,
+        default=None,
+        help="Output CSV file path (default: auto-generated from model name in workspace/csv_files/)"
     )
     parser.add_argument(
         "--key",
@@ -62,6 +93,13 @@ if __name__ == "__main__":
         default=None,
         help="Key to extract from state dict if model is nested (e.g., 'model', 'state_dict')"
     )
+    parser.add_argument(
+        "--prefix",
+        type=str,
+        default="svd",
+        help="Prefix for the CSV filename (default: svd)"
+    )
+    
     
     args = parser.parse_args()
 
@@ -78,8 +116,29 @@ if __name__ == "__main__":
     
     print(f"Found {len(state_dict)} tensors in state dict\n")
 
-    # Run SVD analysis
-    info = analyze_svd(state_dict, energy_threshold=args.energy_threshold)
-    k_value = summarize_svd(info)
+    # Determine output CSV path
+    if args.output is None:
+        # Get the safetensors filename without extension
+        model_name = Path(args.model_path).stem  # e.g., "min_ppo"
+        
+        # Find workspace root (go up until we find workspace directory)
+        current_dir = Path.cwd()
+        workspace_root = None
+        
+        for parent in [current_dir] + list(current_dir.parents):
+            if parent.name == "workspace":
+                workspace_root = parent
+                break
+        
+        # If we can't find workspace, use current directory's parent
+        if workspace_root is None:
+            workspace_root = current_dir
+            print(f"Warning: Could not find 'workspace' directory, using {workspace_root}")
+        
+        # Create path: workspace/csv_files/model_name.csv
+        output_csv = workspace_root / "csv_files" / f"{args.prefix}_{model_name}.csv"
+    else:
+        output_csv = args.output
 
-    print(f"\nEstimated model compression factor (k): {k_value:.2f}")
+    # Run analysis
+    analyze_weights(state_dict, output_csv=str(output_csv))
