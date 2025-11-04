@@ -48,9 +48,10 @@ For example:
 
     ./cartpole_model.py /workspace/min_ppo.safetensors
 
-### IMPORTANT: In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
+### IMPORTANT: 
+In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
 
-/workspace/min_ppo.safetensors
+* /workspace/min_ppo.safetensors
 
 
     self.shared = nn.Sequential(
@@ -60,7 +61,7 @@ For example:
     self.actor = nn.Linear(64, n_actions)
     self.critic = nn.Linear(64, 1)
 
-/workspace/fast_ppo.safetensors
+* /workspace/fast_ppo.safetensors
 
 
     self.shared = nn.Sequential(
@@ -78,14 +79,14 @@ You can simulate your trained cartpole models by running:
 By default, episodes are set to 5 and rendering is turned on.
 
 Examples:
--> Default settings
+* Default settings
 
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 6
 
--> 3 Episodes, Rendering
+* 3 Episodes, Rendering
 
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 6
 
--> 20 Episodes, No rendering
+* 20 Episodes, No rendering
 
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 20 --no-render 
