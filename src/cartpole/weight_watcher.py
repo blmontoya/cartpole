@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import weightwatcher as ww
 import weightwatcher.weightwatcher as core
 
@@ -11,6 +12,7 @@ from safetensors.torch import load_file
 from cartpole.main import ActorCritic 
 import pandas as pd
 import gymnasium as gym
+import argparse
 
 model_add = "min_ppo_cartpole.safetensors"
 stats_add = "min_ppo_stats.csv"
@@ -67,6 +69,45 @@ def run_weight_watcher(model_path, render=False):
     print(f"Maximum spectral norm: {max_spectral_norm:.4f} (Layer: {layer_max_norm})")
     print("=====================\n")
 
-
 if __name__ == "__main__":
-    run_weight_watcher(model_add)
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="Run weight watcher on a safetensors model")
+    parser.add_argument(
+        "model_path",
+        type=str,
+        help="Path to the safetensors model file"
+    )
+    parser.add_argument(
+        "--state-dim",
+        type=int,
+        default=4,
+        help="State dimension (default: 4 for CartPole)"
+    )
+    parser.add_argument(
+        "--n-actions",
+        type=int,
+        default=2,
+        help="Number of actions (default: 2 for CartPole)"
+    )
+    parser.add_argument(
+        "--render",
+        action="store_true",
+        help="Render the environment"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="model_stats.csv",
+        help="Output CSV file path (default: model_stats.csv)"
+    )
+    
+    args = parser.parse_args()
+
+    # Run weight watcher analysis
+    run_weight_watcher(
+        args.model_path, 
+        state_dim=args.state_dim,
+        n_actions=args.n_actions,
+        render=args.render,
+        output_csv=args.output
+    )
