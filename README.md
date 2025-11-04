@@ -15,8 +15,8 @@ All required packages are preinstalled onto the pixi environment.
 
 Also, please run the following so you don't have to write "python" at the start of each command:
 
-    ```python
-        chmod +x *.py
+    ```sh
+    chmod +x *.py
     ```
 
 ## Optional (But Recommended)
