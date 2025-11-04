@@ -53,13 +53,14 @@ In ActorCritic(), record self.shared, self.actor, and self.critic. When you run 
 
 * /workspace/min_ppo.safetensors
 
-
+    ```
     self.shared = nn.Sequential(
         nn.Linear(state_dim, 64),
         nn.LeakyReLU(0.01),
     )
     self.actor = nn.Linear(64, n_actions)
     self.critic = nn.Linear(64, 1)
+    ```
 
 * /workspace/fast_ppo.safetensors
 
