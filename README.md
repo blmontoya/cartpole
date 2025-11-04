@@ -48,7 +48,7 @@ For example:
 
     ./cartpole_model.py /workspace/min_ppo.safetensors
 
-#### IMPORTANT: 
+### IMPORTANT: 
 In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convienience, I've provided two safetensor examples for what this should look like:
 
 * /workspace/min_ppo.safetensors
