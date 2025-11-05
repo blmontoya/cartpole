@@ -118,7 +118,6 @@ def train_multitask():
     clip_coef = 0.2
     
     for cycle in range(total_cycles):
-               
         # 70% walker, 30% lunar during warmup
         task = "walker" if np.random.random() < 0.7 else "lunar"
         #task = "lunar" if cycle % 2 == 0 else "walker"

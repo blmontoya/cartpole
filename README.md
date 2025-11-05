@@ -93,3 +93,17 @@ Examples:
     ```
     ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 20 --no-render 
     ```
+
+## svd.analysis.py
+You can run SVD analysis on the trained cartpole model using:
+
+    ./svd_analysis.py <MODEL PATH>
+
+The k-value represents the percentage of weights being used in the model.
+
+## weight_watcher.py
+The cartpole model is smaller than weight watcher typically runs on, but you can run a weight watcher program for the layers by calling:
+
+    ./weight_watcher.py <MODEL PATH>
+
+
