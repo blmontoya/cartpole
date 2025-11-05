@@ -1,6 +1,8 @@
 <!-- GETTING STARTED -->
 # Getting Started
 
+Note: Please go to the feat/cartpole-1.0 branch!
+
 ## Prerequisites
 
 This program runs on a pixi environment using Python 3.11.0.
