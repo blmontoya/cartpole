@@ -6,7 +6,6 @@ import pandas as pd
 import argparse
 from pathlib import Path
 
-
 def analyze_weights(state_dict, output_csv="model_stats.csv"):
     """Analyze weight statistics for all tensors in state dict"""
     stats = []
