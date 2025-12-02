@@ -22,7 +22,7 @@ import gymnasium as gym
 import torch
 import argparse
 import os
-from safetensors.torch import load_file  # <-- safetensors
+from safetensors.torch import load_file
 from cartpole_model import ActorCritic  
 
 def run_agent(model_path, episodes=5, render=True):

@@ -103,7 +103,7 @@ def compute_gae(rewards, values, dones, gamma=0.99, lam=0.95):
 
 
 # Training Loop
-def train_multitask():
+def train_multitask(output_path, total_cycles=300):
     # Create vectorized environments
     envs = {
         "lunar": DummyVecEnv([make_env("LunarLander-v3") for _ in range(4)]),
@@ -114,7 +114,6 @@ def train_multitask():
     model = MultiTaskActorCritic().to(device)
     optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-    total_cycles = 300 
     steps_per_task = 2048
     ppo_epochs = 10
     minibatch_size = 256
@@ -123,10 +122,9 @@ def train_multitask():
     for cycle in range(total_cycles):
         # 70% walker, 30% lunar during warmup
         task = "walker" if np.random.random() < 0.7 else "lunar"
-        print(f"\nTraining task: {task} (cycle {cycle})")
+        print(f"\nTraining task: {task} (cycle {cycle}/{total_cycles})")
         model.set_task(task)
         env = envs[task]
-
         # For logging per cycle
         cycle_actor_loss = 0.0
         cycle_critic_loss = 0.0
@@ -266,16 +264,15 @@ def train_multitask():
 
     return model
 
-
 def main():
     parser = argparse.ArgumentParser(
         description='Train a multitask PPO model on LunarLander and BipedalWalker',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-            Examples:
-            %(prog)s /workspace/multitask_model.safetensors
-            %(prog)s ./models/my_model.safetensors --cycles 500
-                    """
+        Examples:
+        %(prog)s /workspace/multitask_model.safetensors
+        %(prog)s ./models/my_model.safetensors --cycles 500
+        """
     )
     
     parser.add_argument(

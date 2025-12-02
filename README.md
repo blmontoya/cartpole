@@ -70,7 +70,6 @@ In ActorCritic(), record self.shared, self.actor, and self.critic. When you run 
     self.critic = nn.Linear(64, 1)
     ```
 
-
 ## cartpole_eval.py
 You can simulate your trained cartpole models by running:
 
@@ -107,4 +106,13 @@ The cartpole model is smaller than weight watcher typically runs on, but you can
     ./weight_watcher.py <MODEL PATH>
 
 ## lunar_walker_mlp.py
+Similar to cartpole, you can train an MLP to complete both lunar lander and bipedal walker. The MLP uses the same backbone to train both lunar lander and bipedal walker, and can be run by calling:
+
+    ./lunar_walker_mlp.py /PATH/<name>.safetensors --cycles <cycle count>
+
+For example:
+
+    ./cartpole_model.py /workspace/multitask_model.safetensors --cycles 500
+
+By default, cycles is set to 300.
 
