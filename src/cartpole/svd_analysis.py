@@ -49,7 +49,7 @@ def analyze_weights(state_dict, output_csv="model_stats.csv"):
     df.to_csv(output_csv, index=False)
     print(df.to_string())
 
-    # --- Summary ---
+    # Summary
     total_params = df["num_params"].sum()
     weight_matrices = df[df["spectral_norm"].notna()]
     
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # Determine output CSV path
     if args.output is None:
         # Get the safetensors filename without extension
-        model_name = Path(args.model_path).stem  # e.g., "min_ppo"
+        model_name = Path(args.model_path).stem
         
         # Find workspace root (go up until we find workspace directory)
         current_dir = Path.cwd()
