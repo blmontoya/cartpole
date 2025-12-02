@@ -13,7 +13,7 @@ This program runs on a pixi environment using Python 3.11.0.
 
 All required packages are preinstalled onto the pixi environment.
 
-* Also, please run the following so you don't have to write "python" at the start of each command:
+* Also, please enter the src directory and run the following command to avoid writing "python" at the start of each command:
 
     chmod +x *.py
     

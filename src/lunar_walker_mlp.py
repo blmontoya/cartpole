@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import gymnasium as gym
 import torch
 import torch.nn as nn
@@ -6,6 +7,8 @@ from torch.distributions import Categorical, Normal
 import numpy as np
 from stable_baselines3.common.vec_env import DummyVecEnv
 from safetensors.torch import save_file
+import argparse
+import sys
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -263,6 +266,43 @@ def train_multitask():
 
     return model
 
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Train a multitask PPO model on LunarLander and BipedalWalker',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+            Examples:
+            %(prog)s /workspace/multitask_model.safetensors
+            %(prog)s ./models/my_model.safetensors --cycles 500
+                    """
+    )
+    
+    parser.add_argument(
+        'output_path',
+        type=str,
+        help='Path where the trained model will be saved (e.g., /workspace/model.safetensors)'
+    )
+    
+    parser.add_argument(
+        '--cycles',
+        type=int,
+        default=300,
+        help='Number of training cycles (default: 300)'
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate output path
+    if not args.output_path.endswith('.safetensors'):
+        print("Warning: Output path should end with .safetensors", file=sys.stderr)
+    
+    print(f"Starting training for {args.cycles} cycles...")
+    print(f"Model will be saved to: {args.output_path}")
+    
+    train_multitask(args.output_path, args.cycles)
+    
+    print(f"\n✓ Model successfully saved to {args.output_path}")
+
 if __name__ == "__main__":
-    model = train_multitask()
-    save_file(model.state_dict(), "multitask_model.safetensors")
+    main()

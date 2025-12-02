@@ -23,7 +23,7 @@ import torch
 import argparse
 import os
 from safetensors.torch import load_file  # <-- safetensors
-from cartpole.cartpole_model import ActorCritic  
+from cartpole_model import ActorCritic  
 
 def run_agent(model_path, episodes=5, render=True):
     """Load a trained Actor-Critic model and run evaluation episodes."""
