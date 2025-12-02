@@ -23,11 +23,11 @@ class MultiTaskActorCritic(nn.Module):
         super().__init__()
         # Shared backbone
         self.shared_backbone = nn.Sequential(
-            nn.Linear(128, 512),
+            nn.Linear(128, 768),
             nn.LeakyReLU(negative_slope=0.01),
-            nn.Linear(512, 512),
+            nn.Linear(768, 768),
             nn.LeakyReLU(negative_slope=0.01),
-            nn.Linear(512, 128),
+            nn.Linear(768, 128),
             nn.LeakyReLU(negative_slope=0.01),
         )
         # Input adapters
@@ -37,13 +37,29 @@ class MultiTaskActorCritic(nn.Module):
         })
         # Actor heads
         self.actor_heads = nn.ModuleDict({
-            "lunar": nn.Linear(128, 4), 
-            "walker": nn.Linear(128, 6)  
+            "lunar": nn.Sequential(
+                nn.Linear(128, 128), 
+                nn.LeakyReLU(0.01),
+                nn.Linear(128, 4)
+            ),
+            "walker": nn.Sequential(
+                nn.Linear(128, 128),
+                nn.LeakyReLU(0.01),
+                nn.Linear(128, 6)
+            )
         })
         # Critic heads
         self.critic_heads = nn.ModuleDict({
-            "lunar": nn.Linear(128, 1),
-            "walker": nn.Linear(128, 1)
+            "lunar": nn.Sequential(
+                nn.Linear(128, 128),
+                nn.LeakyReLU(0.01),
+                nn.Linear(128, 1)
+            ),
+            "walker": nn.Sequential(
+                nn.Linear(128, 128),
+                nn.LeakyReLU(0.01),
+                nn.Linear(128, 1)
+            )
         })
         # Log std for continuous actions
         self.log_std = nn.Parameter(torch.zeros(6))
@@ -58,6 +74,7 @@ class MultiTaskActorCritic(nn.Module):
         features = self.shared_backbone(x)
         if self.current_task == "lunar":
             logits = self.actor_heads["lunar"](features)
+            logits = torch.clamp(logits, -10, 10)
             dist = Categorical(logits=logits)
         else:
             # Clamp log_std to prevent explosion
@@ -70,7 +87,8 @@ class MultiTaskActorCritic(nn.Module):
         x = torch.relu(self.input_adapters[self.current_task](obs))
         features = self.shared_backbone(x)
         value = self.critic_heads[self.current_task](features)
-        return value.squeeze(-1)
+        # Clamps the values
+        return torch.clamp(value.squeeze(-1), -300, 300)
 
 
 # PPO Helper Functions
@@ -112,7 +130,11 @@ def train_multitask(output_path, total_cycles=300):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = MultiTaskActorCritic().to(device)
+    # Optimizer with scheduler
     optimizer = optim.Adam(model.parameters(), lr=3e-4)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=total_cycles, eta_min=1e-5
+    )
 
     steps_per_task = 2048
     ppo_epochs = 10
@@ -120,8 +142,16 @@ def train_multitask(output_path, total_cycles=300):
     clip_coef = 0.2
     
     for cycle in range(total_cycles):
-        # 70% walker, 30% lunar during warmup
-        task = "walker" if np.random.random() < 0.7 else "lunar"
+        # Adjust ratio over time
+        if cycle < 100:
+            lunar_freq = 7  # lunar every 7th cycle (85% walker)
+        elif cycle < 200:
+            lunar_freq = 3  # lunar every 3rd cycle (66% walker)
+        else:
+            lunar_freq = 2  # lunar every 2nd cycle (50% walker)
+
+        task = "lunar" if cycle % lunar_freq == 0 else "walker"
+
         print(f"\nTraining task: {task} (cycle {cycle}/{total_cycles})")
         model.set_task(task)
         env = envs[task]
@@ -133,7 +163,7 @@ def train_multitask(output_path, total_cycles=300):
 
         obs = env.reset()
         obs = torch.tensor(obs, dtype=torch.float32, device=device)
-        obs = obs / (obs.abs().max() + 1e-8)
+        #obs = obs / (obs.abs().max() + 1e-8)
         
         # Collect rollout       
         obs_list, actions_list, log_probs_list = [], [], []
@@ -222,8 +252,8 @@ def train_multitask(output_path, total_cycles=300):
                 critic_loss = (mb_returns - new_values).pow(2).mean()
                 entropy = dist.entropy().mean()
 
-                critic_coeff = 0.05 
-                entropy_coeff = 0.01 if task == "lunar" else 0.001
+                critic_coeff = 0.05 if task == "lunar" else 0.02
+                entropy_coeff = 0.02 if task == "lunar" else 0.01
                 loss = actor_loss + critic_coeff * critic_loss - entropy_coeff * entropy
 
                 optimizer.zero_grad()
@@ -254,6 +284,7 @@ def train_multitask(output_path, total_cycles=300):
         writer.add_scalar(f"RewardMax/{task}", max_reward, cycle)
 
         print(f"  Avg Reward: {avg_reward:.2f}, Actor Loss: {avg_actor_loss:.4f}, Critic Loss: {avg_critic_loss:.4f}, Entropy: {avg_entropy:.4f}")
+        scheduler.step()
 
 
     print("Training completed!")
@@ -261,6 +292,10 @@ def train_multitask(output_path, total_cycles=300):
     # Close environments
     for env in envs.values():
         env.close()
+    
+    print(f"Saving model to {output_path}...")
+    state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
+    save_file(state_dict, output_path)
 
     return model
 
@@ -299,7 +334,7 @@ def main():
     
     train_multitask(args.output_path, args.cycles)
     
-    print(f"\n✓ Model successfully saved to {args.output_path}")
+    print(f"\nModel successfully saved to {args.output_path}")
 
 if __name__ == "__main__":
     main()
