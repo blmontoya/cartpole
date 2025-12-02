@@ -34,15 +34,15 @@ class MultiTaskActorCritic(nn.Module):
         })
         # Actor heads
         self.actor_heads = nn.ModuleDict({
-            "lunar": nn.Linear(128, 4),   # discrete actions
-            "walker": nn.Linear(128, 6)   # BipedalWalker has 6 continuous actions, not 4
+            "lunar": nn.Linear(128, 4), 
+            "walker": nn.Linear(128, 6)  
         })
         # Critic heads
         self.critic_heads = nn.ModuleDict({
             "lunar": nn.Linear(128, 1),
             "walker": nn.Linear(128, 1)
         })
-        # Log std for continuous actions (6 dims for BipedalWalker)
+        # Log std for continuous actions
         self.log_std = nn.Parameter(torch.zeros(6))
         # Current task
         self.current_task = "lunar"
@@ -111,16 +111,15 @@ def train_multitask():
     model = MultiTaskActorCritic().to(device)
     optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-    total_cycles = 300      # More cycles for better training
-    steps_per_task = 2048   # More steps per rollout
+    total_cycles = 300 
+    steps_per_task = 2048
     ppo_epochs = 10
-    minibatch_size = 256    # Larger minibatch for more data
+    minibatch_size = 256
     clip_coef = 0.2
     
     for cycle in range(total_cycles):
         # 70% walker, 30% lunar during warmup
         task = "walker" if np.random.random() < 0.7 else "lunar"
-        #task = "lunar" if cycle % 2 == 0 else "walker"
         print(f"\nTraining task: {task} (cycle {cycle})")
         model.set_task(task)
         env = envs[task]
@@ -131,19 +130,17 @@ def train_multitask():
         cycle_entropy = 0.0
         num_minibatches = 0
 
-
         obs = env.reset()
         obs = torch.tensor(obs, dtype=torch.float32, device=device)
         obs = obs / (obs.abs().max() + 1e-8)
-        
         
         # Collect rollout       
         obs_list, actions_list, log_probs_list = [], [], []
         rewards_list, dones_list, values_list = [], [], []
 
         # Initialize cumulative reward tracking
-        episode_reward = torch.zeros(env.num_envs, device=device)  # running reward per environment
-        completed_rewards = []  # store total rewards for finished episodes
+        episode_reward = torch.zeros(env.num_envs, device=device) 
+        completed_rewards = [] 
 
         for step in range(steps_per_task):
             with torch.no_grad():
@@ -162,9 +159,6 @@ def train_multitask():
                 action_np = action.cpu().numpy()
 
             obs_next, reward, done, info = env.step(action_np)
-
-            #if task == "walker":
-            #    reward = reward / 100.0
 
             # Update episode reward
             reward_tensor = torch.tensor(reward, dtype=torch.float32, device=device)
@@ -185,8 +179,6 @@ def train_multitask():
             dones_list.append(torch.tensor(done, dtype=torch.float32, device=device))
 
             obs = torch.tensor(obs_next, dtype=torch.float32, device=device)
-            # Example running mean/std per task
-            #obs = obs / (obs.abs().max() + 1e-8)
 
         # Compute returns and normalized advantages
         returns, advantages = compute_gae(rewards_list, values_list, dones_list)
@@ -200,9 +192,9 @@ def train_multitask():
         log_probs_batch = torch.stack(log_probs_list).view(-1)
         returns_batch = returns.view(-1)
         advantages_batch = advantages.view(-1)
+
         # PPO Update - multiple epochs over minibatches
         batch_size = obs_batch.shape[0]
-        global_step = 0  # count across all minibatches
         for epoch in range(ppo_epochs):
             indices = torch.randperm(batch_size, device=device)
             for start in range(0, batch_size, minibatch_size):

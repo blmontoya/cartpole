@@ -31,21 +31,22 @@ def run_agent(model_path, episodes=5, render=True):
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found: {model_path}")
 
-    # --- Environment ---
+    # Environment
     env = gym.make("CartPole-v1", render_mode="human" if render else None)
     state_dim = env.observation_space.shape[0]
     n_actions = env.action_space.n
 
-    # --- Load model ---
+    # Load model
     model = ActorCritic(state_dim, n_actions)
-    state_dict = load_file(model_path)  # safetensors loads a dict of tensors
+    # Safetensors loads a dict of tensors
+    state_dict = load_file(model_path)
     model.load_state_dict(state_dict)
     model.eval()
 
     total_reward = 0
     total_steps = 0
 
-    # --- Run episodes ---
+    # Run episodes
     for ep in range(episodes):
         state, _ = env.reset()
         ep_reward = 0
@@ -59,7 +60,8 @@ def run_agent(model_path, episodes=5, render=True):
             with torch.no_grad():
                 logits, _ = model(state_tensor)
                 probs = torch.softmax(logits, dim=-1)
-                action = torch.argmax(probs).item()  # pick best action
+                # Picks the best action
+                action = torch.argmax(probs).item()
 
             state, reward, terminated, truncated, _ = env.step(action)
             ep_reward += reward

@@ -25,7 +25,7 @@ def analyze_weights(state_dict, output_csv="model_stats.csv"):
             "num_params": W.numel()
         }
         
-        # Spectral norm only for 2D tensors (weight matrices)
+        # Spectral norm only for 2D tensors
         if len(W.shape) == 2:
             try:
                 u, s, v = torch.linalg.svd(W)

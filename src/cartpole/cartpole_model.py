@@ -33,14 +33,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import argparse
-
-# import safetensors
 from torch.distributions import Categorical
 
-# add tensorboard later
+# Add tensorboard later
 # Actor-Critic MLP
-# Maybe seperate into the actor and the critic classes?
-# Maybe add dropout and fully connected layers
 class LowRankLinear(nn.Module):
     def __init__(self, in_features, out_features, rank):
         super().__init__()
@@ -63,8 +59,6 @@ class ActorCritic(nn.Module):
         x = self.shared(x)
         return self.actor(x), self.critic(x)
 
-
-# Maybe make into a seperate method?
 def create_cartpole_model(model_path):
     # Environment
     env = gym.make("CartPole-v1")
