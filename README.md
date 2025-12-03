@@ -41,7 +41,7 @@ If this does not work, please consult: https://github.com/garylvov/dev_env/tree/
 <!-- Using the Programs -->
 # Using the Programs
 
-All commands here should be run in src
+All commands here should be run in the src directory.
 
 ## cartpole_model.py
 You can create a model trained on cartpole by running:
