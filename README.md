@@ -48,7 +48,7 @@ You can create a model trained on cartpole by running:
 
 For example:
 
-    ./cartpole_model.py /workspace/min_ppo.safetensors
+    ./cartpole_model.py /workspace/models/min_ppo.safetensors
 
 ### IMPORTANT: 
 In ActorCritic(), record self.shared, self.actor, and self.critic. When you run your safetensors file in cartpole_eval.py. These MUST align with what you trained on the safetensors file. For convenience, I've provided two safetensor examples for what this should look like:
@@ -82,17 +82,17 @@ By default, episodes are set to 5 and rendering is turned on.
 Examples:
 * Default settings
     ```
-    ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors
+    ./cartpole_eval.py /workspace/models/fast_ppo_cartpole.safetensors
     ```
 
 * 3 Episodes, Rendering
     ```
-    ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 3
+    ./cartpole_eval.py /workspace/models/fast_ppo_cartpole.safetensors --episodes 3
     ```
 
 * 20 Episodes, No rendering
     ```
-    ./cartpole_eval.py /workspace/fast_ppo_cartpole.safetensors --episodes 20 --no-render 
+    ./cartpole_eval.py /workspace/models/fast_ppo_cartpole.safetensors --episodes 20 --no-render 
     ```
 
 ## svd.analysis.py
@@ -112,9 +112,9 @@ Similar to cartpole, you can train an MLP to complete both lunar lander and bipe
 
     ./lunar_walker_mlp.py /PATH/<name>.safetensors --cycles <cycle count>
 
-For example:
+For example (The current multitask_model.safetensors):
 
-    ./lunar_walker_mlp.py /workspace/multitask_model.safetensors --cycles 250
+    ./lunar_walker_mlp.py /workspace/models/multitask_model.safetensors --cycles 250
 
 By default, cycles is set to 300.
 
@@ -178,15 +178,15 @@ By default, the task is Lunar Lander, episodes are set to 5, rendering is enable
 Examples:
 * Default settings
     ```
-    ./lunar_walker_eval.py /workspace/multitask_model.safetensors
+    ./lunar_walker_eval.py /workspace/models/multitask_model.safetensors
     ```
 
 * Bipedal Walker, 3 Episodes, Rendering
     ```
-    ./lunar_walker_eval.py /workspace/multitask_model.safetensors --task walker --episodes 3
+    ./lunar_walker_eval.py /workspace/models/multitask_model.safetensors --task walker --episodes 3
     ```
 
 * Lunar Lander, Default Episodes, No Rendering, Stochastic (random sampling)
     ```
-    ./lunar_walker_eval.py /workspace/multitask_model.safetensors --task lunar --no-render --stochastic
+    ./lunar_walker_eval.py /workspace/models/multitask_model.safetensors --task lunar --no-render --stochastic
     ```
